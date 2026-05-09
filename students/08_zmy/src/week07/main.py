@@ -16,11 +16,11 @@ from utils.models import AnalyticalOLS, GradientDescentOLS
 
 
 # ==================== 辅助函数 ====================
-def rmse(y_true, y_pred):
+def rmse(y_true, y_pred): #封装均方根误差计算，便于调用。
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 
-def setup_results_dir():
+def setup_results_dir(): #在 main.py 同级目录下创建 results/ 文件夹。
     results_dir = Path(__file__).parent / "results"
     if results_dir.exists():
         import shutil
@@ -48,6 +48,10 @@ def load_data():
 
 
 def task_cross_validation(X, y, n_folds=5, random_state=42):
+    """
+    每折在训练集上拟合 AnalyticalOLS（自动添加截距），在验证集上计算 R² 和 RMSE。
+    输出每折结果及平均值，用于评估解析解模型的泛化能力。
+    """
     print("\n" + "="*60)
     print("Task 2: 5-Fold Cross-Validation on AnalyticalOLS")
     print("="*60)
@@ -103,14 +107,14 @@ def plot_learning_curve(X_train, y_train, results_dir):
     
     # 使用较小的学习率以便观察差异
     model_full = GradientDescentOLS(
-        learning_rate=0.005,          # 从 0.1 改小
+        learning_rate=0.1,          # 从 0.1 改小
         gd_type="full_batch",
         max_iter=300,
         fit_intercept=False
     ).fit(X_train, y_train, seed=42)
 
     model_mini = GradientDescentOLS(
-        learning_rate=0.005,          # 同样使用 0.01
+        learning_rate=0.1,          # 同样使用 0.01
         gd_type="mini_batch",
         batch_fraction=0.1,
         max_iter=300,
@@ -162,13 +166,13 @@ def main():
     )
     print(f"\nSplit sizes: Train={len(X_train)}, Val={len(X_val)}, Test={len(X_test)}")
 
-    # 标准化（只使用训练集统计量）
+    # 标准化（只使用训练集统计量）,只从训练集学习均值/标准差
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
     X_test_scaled = scaler.transform(X_test)
 
-    # 添加截距列
+    # 添加截距列,标准化之后添加全1列，避免截距项被缩放到均值0，保持其物理意义。
     X_train_scaled = np.column_stack([np.ones(len(X_train_scaled)), X_train_scaled])
     X_val_scaled = np.column_stack([np.ones(len(X_val_scaled)), X_val_scaled])
     X_test_scaled = np.column_stack([np.ones(len(X_test_scaled)), X_test_scaled])
